@@ -303,6 +303,8 @@ resultsdf=pd.DataFrame(grid_search_cv.cv_results_)
 print("The train score:", str(grid_search_cv.score(features_train_2std, target_train)), "with parameters:", grid_search_cv.best_params_)
 pred = grid_search_cv.best_estimator_.predict(features_test_2std)
 
+
+
 checkmetrics(pred, target_test, 'Linear Support Vector Classification')
 
 print("Running for %s seconds" % (time.time() - start_time))

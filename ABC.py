@@ -19,6 +19,8 @@ import numpy as np
 import random
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import KFold
+from sklearn.svm import LinearSVC
+from sklearn.model_selection import GridSearchCV
 
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
@@ -323,26 +325,49 @@ class CHA():
         self.abandoned.add(foodSource)
 
     def calculateFitness(self,featureInclusion):
-        deletedFeatures = 0
+        if 0:
+            deletedFeatures = 0
+            data = self.data
+            for i in range(0,len(featureInclusion)):
+                if featureInclusion[i] == False:
+                    data = np.delete(data,np.s_[i-deletedFeatures],1)
+                    deletedFeatures += 1
 
-        data = self.data
-        for i in range(0,len(featureInclusion)):
-            if featureInclusion[i] == False:
-                data = np.delete(data,np.s_[i-deletedFeatures],1)
-                deletedFeatures += 1
+            rows, cols = data.shape
+            X = data[:, :cols-1]
+            y = data[:, cols-1:]
+            y = y.ravel()
+            kf = KFold(n_splits=10)
+            for train_index, test_index in kf.split(X):
+                X_train, X_test = X[train_index], X[test_index]
+                y_train, y_test = y[train_index], y[test_index]
+            n = KNeighborsClassifier(n_neighbors=3)
+            n.fit(X_train, y_train)
 
-        rows, cols = data.shape
-        X = data[:, :cols-1]
-        y = data[:, cols-1:]
-        y = y.ravel()
-        kf = KFold(n_splits=10)
-        for train_index, test_index in kf.split(X):
-            X_train, X_test = X[train_index], X[test_index]
-            y_train, y_test = y[train_index], y[test_index]
-        n = KNeighborsClassifier(n_neighbors=3)
-        n.fit(X_train, y_train)
+            score = n.score(X_test, y_test)
+        else:
+            deletedFeatures = 0
+            data = self.data
+            for i in range(0, len(featureInclusion)):
+                if featureInclusion[i] == False:
+                    data = np.delete(data, np.s_[i - deletedFeatures], 1)
+                    deletedFeatures += 1
 
-        score = n.score(X_test, y_test)
+            rows, cols = data.shape
+            X = data[:, :cols - 1]
+            y = data[:, cols - 1:]
+            y = y.ravel()
+
+            parameters = {}
+            SVM = LinearSVC()
+            grid_search_cv = GridSearchCV(SVM, parameters, cv=3, n_jobs=-1, return_train_score=True, refit=True,
+                                          verbose=1)
+            grid_search_cv.fit(X, y)
+            resultsdf = pd.DataFrame(grid_search_cv.cv_results_)
+            score = grid_search_cv.score(X, y)
+            print("The train score:", str(score), "with parameters:",
+                  grid_search_cv.best_params_)
+
         return score
 
 
