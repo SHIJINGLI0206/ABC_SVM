@@ -43,7 +43,7 @@ class CHA():
         self.databaseName = data_path
         self.runtime = 1
         self.limit = 15
-        self.mr = 0.06
+        self.mr = 0.09
         self.KFOLD = 5
         self.maxNRFeatures = 165
         #fix selected number for init food source
@@ -219,10 +219,10 @@ class CHA():
             if s.getFitness() > range:
                 range = s.getFitness()
 
+        employedbeecount = 0
         for fs in self.foodSources:
             prob = (fs.getFitness()-min)/range
             r = random.random()
-            employedbeecount = 0
             if r < prob:
                 self.sendBee(fs)
                 print("sending onlooker bees loop no:", employedbeecount)
