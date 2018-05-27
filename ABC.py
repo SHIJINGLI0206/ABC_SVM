@@ -42,9 +42,9 @@ class CHA():
         #self.databaseName = "dataset/segment.arff"
         self.databaseName = data_path
         self.runtime = 1
-        self.limit = 10
-        self.mr = 0.05
-        self.KFOLD = 10
+        self.limit = 15
+        self.mr = 0.06
+        self.KFOLD = 5
         self.maxNRFeatures = 165
         #fix selected number for init food source
         self.selectedFeatureNum = 25
@@ -361,12 +361,12 @@ class CHA():
             parameters = {}
             SVM = LinearSVC()
             grid_search_cv = GridSearchCV(SVM, parameters, cv=3, n_jobs=-1, return_train_score=True, refit=True,
-                                          verbose=1)
+                                          verbose=0)
             grid_search_cv.fit(X, y)
             resultsdf = pd.DataFrame(grid_search_cv.cv_results_)
             score = grid_search_cv.score(X, y)
-            print("The train score:", str(score), "with parameters:",
-                  grid_search_cv.best_params_)
+            # print("The train score:", str(score), "with parameters:",
+            #    grid_search_cv.best_params_)
 
         return score
 
@@ -389,7 +389,10 @@ class CHA():
     def logBestSolutionAndTime(self,t):
         print('Time: ',t)
         print('Best ', self.bestFoodSource.getFeatureInclusion())
+        featureNum = np.count_nonzero(self.bestFoodSource.getFeatureInclusion())
+        print('Selected Feature Num: ',featureNum)
         print('Feature selection End.')
+        print('Best Fitness is ',self.bestFitness)
 
 
     def runCHA(self):
