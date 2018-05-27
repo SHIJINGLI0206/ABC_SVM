@@ -17,7 +17,6 @@ from io import StringIO
 
 import numpy as np
 import random
-import arff
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import KFold
 
@@ -46,7 +45,7 @@ class CHA():
         self.KFOLD = 10
         self.maxNRFeatures = 165
         #fix selected number for init food source
-        self.selectedFeatureNum = 2
+        self.selectedFeatureNum = 25
         self.fscores = fscores
         self.header_names = header_names
         self.valid_col_num = valid_col_num
@@ -189,9 +188,11 @@ class CHA():
         self.scouts = set()
         self.markedToRemoved = set()
         self.neighbors = set()
-
+        employedbeecount = 1
         for fs in self.foodSources:
             self.sendBee(fs)
+            print("sending employed bees loop no: ", employedbeecount)
+            employedbeecount += 1
 
         # remove all markedToRemoved
         for mtr in self.markedToRemoved:
@@ -219,8 +220,11 @@ class CHA():
         for fs in self.foodSources:
             prob = (fs.getFitness()-min)/range
             r = random.random()
+            employedbeecount = 0
             if r < prob:
                 self.sendBee(fs)
+                print("sending onlooker bees loop no:", employedbeecount)
+                employedbeecount += 1
             else:
                 fs.incrementLimit()
                 #print('fs limit: ', fs.getLimit())
