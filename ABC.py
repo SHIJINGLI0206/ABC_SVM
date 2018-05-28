@@ -25,13 +25,20 @@ from sklearn.model_selection import GridSearchCV
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import f1_score
+from sklearn.metrics import make_scorer
+from sklearn.metrics import accuracy_score
+
 class PerturbationStrategy(Enum):
     USE_MR = 1
     CHANGE_ONE_FEATURE = 2
 
 
 class CHA():
-    def __init__(self, data_path, fscores, header_names, valid_col_num, target_col_index):
+    def __init__(self, data_train_path, data_test_path, fscores, header_names, valid_col_num, target_col_index):
         #self.features = {True, True, True, True}
         # self.features = { True, True, True, True, True, True, True, True,
         #                    True, True, True, True, True, True, True, True, True, True,
@@ -40,7 +47,8 @@ class CHA():
 
         self.featureSize = 0
         #self.databaseName = "dataset/segment.arff"
-        self.databaseName = data_path
+        self.data_train_path = data_train_path
+        self.data_test_path = data_test_path
         self.runtime = 1
         self.limit = 15
         self.mr = 0.09
@@ -68,68 +76,23 @@ class CHA():
             self.perturbation = PerturbationStrategy.CHANGE_ONE_FEATURE
 
         self.states = 0
-        self.data = None
-
-
-    def loadFeatures(self,filename,filter):
-        # loader = Loader("weka.core.converters.ArffLoader")
-        # data = loader.load_file(filename)
-        # self.originalInstances = data
-        # if filter:
-        #     for i in range(0,filter.length):
-        #         filter[i].setInputFormat(self.originalInstances)
-        #
-        #         self.originalInstances = Instance(javabridge.static_call(
-        #             "Lweka/filters/Filter;", "useFilter",
-        #             "(Lweka/core/Instances;Lweka/filters/Filter;)Lweka/core/Instances;",
-        #             self.originalInstances,filter[i]
-        #         ))
-        # self.instances = self.originalInstances
-        # return self.originalInstances.num_attributes() - 1
-        pass
-
+        self.data_train = None
+        self.data_test = None
 
     def loadFeatures(self):
-        #self.instances = self.originalInstances
-        #loader = Loader("weka.core.converters.ArffLoader")
-        #data = loader.load_file(self.databaseName)
-        #self.originalInstances = data
-        #self.instances = Instances.copy_instances(self.originalInstances)
-        #return self.originalInstances.num_attributes - 1
+        ds_train = pd.read_csv(self.data_train_path,header=0)
+        ds_test = pd.read_csv(self.data_test_path,header=0)
 
-        #train_df = pd.read_csv("data/human-activity-recognition-with-smartphones/train.csv")
-        #test_df = pd.read_csv("data/human-activity-recognition-with-smartphones/test.csv")
-
-        #ds = arff.load(open(self.databaseName, 'r'))
-        ds = pd.read_csv(self.databaseName,header=0)
         #self.data = np.array(ds['data'])
-        self.data = ds.as_matrix()
-        rows, cols = self.data.shape
-        self.featureSize = cols - 1
+        self.data_train = ds_train.as_matrix()
+        self.data_test = ds_test.as_matrix()
+        rows_train, cols_train = self.data_train.shape
+        rows_test, cols_test = self.data_test.shape
+
+        self.featureSize = cols_train - 1
         self.features = np.ones(self.featureSize, dtype=bool)
 
-        return self.data.shape[0]
-
-
-
-    def executeKFoldClassifier(self,featureInclusion, kFold):
-        # deleteFeatures = 0
-        # for i in range(0,len(featureInclusion)):
-        #     if featureInclusion[i]:
-        #         self.instances.deleteAttributeAt(i - deleteFeatures)
-        #         deleteFeatures += 1
-        # self.instances.setClassIndex(self.instances.numAttributes - 1)
-        #
-        # cvParameterSelection = javabridge.make_instance("weka/classifiers/meta/CVParameterSelection","()V")
-        # javabridge.call(cvParameterSelection, "setNumFolds", "(I)V", kFold)
-        # javabridge.call(cvParameterSelection,"buildClassifier(weka/core/Instances)V",self.instances)
-        #
-        #
-        # eval = Evaluation(self.instances)
-        # eval.crossvalidate_model(cvParameterSelection,self.instances,kFold,random())
-        #
-        # return eval.percent_correct()
-        pass
+        return self.data_train.shape[0]
 
 
     def executeKFoldClassifier(self,featureInclusion, kFold, classIndex):
@@ -138,36 +101,6 @@ class CHA():
             if featureInclusion[i] == False:
                 self.instances.deleteAttributeAt( i - deletedFeatures)
                 deletedFeatures += 1
-
-        '''
-        self.instances.setClassIndex(classIndex)
-
-        cvParameterSelection = javabridge.make_instance("Lweka/classifiers/meta/CVParameterSelection","()V")
-        javabridge.call(cvParameterSelection, "setNumFolds", "(I)V", kFold)
-        javabridge.call(cvParameterSelection,"buildClassifier(Lweka/core/Instances)V",self.instances)
-
-        eval = Evaluation(self.instances)
-        eval.crossvalidate_model(cvParameterSelection, self.instances, kFold, Random(1))
-
-        return eval.percent_correct()'''
-
-
-
-    def executeFullFeaturesWithNoFilters(self):
-        print('executeFullFeaturesWithNoFilters')
-        self.executor.loadFeatures(self.databaseName, self.replaceMissingValues)
-        result = self.executor.execute(self.features, self.KFOLD)
-        print('Full ' + result + '%')
-
-    def executeWithNoFilter(self):
-        print('executeWithNoFilter')
-        self.executor.loadFeatures(self.databaseName, self.replaceMissingValues)
-        # self.featureSelection = FeatureSelection(self.runtime,
-        #                                          self.limit, self.mr, self.executor)
-        # self.featureSelection.setExecutor(self.executor)
-        # self.featureSelection.execute()
-        self.executeFeatureSelection()
-
 
     def initializeFoodSource(self):
         print('initializeFoodSources')
@@ -209,7 +142,6 @@ class CHA():
         print('SendOnlookerBees')
         self.markedToRemoved = set()
         self.neighbors = set()
-
 
         min = list(self.foodSources)[0].getFitness()
         range = list(self.foodSources)[0].getFitness()
@@ -327,7 +259,7 @@ class CHA():
     def calculateFitness(self,featureInclusion):
         if 0:
             deletedFeatures = 0
-            data = self.data
+            data = self.data_train
             for i in range(0,len(featureInclusion)):
                 if featureInclusion[i] == False:
                     data = np.delete(data,np.s_[i-deletedFeatures],1)
@@ -347,24 +279,36 @@ class CHA():
             score = n.score(X_test, y_test)
         else:
             deletedFeatures = 0
-            data = self.data
+            data_train = self.data_train
+            data_test = self.data_test
             for i in range(0, len(featureInclusion)):
                 if featureInclusion[i] == False:
-                    data = np.delete(data, np.s_[i - deletedFeatures], 1)
+                    data_train = np.delete(data_train, np.s_[i - deletedFeatures], 1)
+                    data_test = np.delete(data_test, np.s_[i - deletedFeatures], 1)
                     deletedFeatures += 1
 
-            rows, cols = data.shape
-            X = data[:, :cols - 1]
-            y = data[:, cols - 1:]
-            y = y.ravel()
+            rows_train, cols_train = data_train.shape
+            rows_test, cols_test = data_test.shape
+
+            X_train = data_train[:, :cols_train - 1]
+            y = data_train[:, cols_train - 1:]
+            y_train = y.ravel()
+
+            X_test = data_test[:, :cols_test - 1]
+            y = data_test[:, cols_test - 1:]
+            y_test = y.ravel()
 
             parameters = {}
             SVM = LinearSVC()
             grid_search_cv = GridSearchCV(SVM, parameters, cv=3, n_jobs=-1, return_train_score=True, refit=True,
                                           verbose=0)
-            grid_search_cv.fit(X, y)
+            grid_search_cv.fit(X_train, y_train)
             resultsdf = pd.DataFrame(grid_search_cv.cv_results_)
-            score = grid_search_cv.score(X, y)
+
+            train_score = grid_search_cv.score(X_train, y_train)
+            pred = grid_search_cv.best_estimator_.predict(X_test)
+
+            score = accuracy_score(pred, y_test)
             # print("The train score:", str(score), "with parameters:",
             #    grid_search_cv.best_params_)
 

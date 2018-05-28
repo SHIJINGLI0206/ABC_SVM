@@ -8,7 +8,8 @@ from sklearn.preprocessing import MinMaxScaler
 
 if __name__ == "__main__":
     #path_data = "data/human-activity-recognition-with-smartphones/train.csv"
-    path_data = "data/train_ranking.csv"
+    path_train_data = "data/train_ranking.csv"
+
     f = open('data/Fscore_ranked', 'r')
     s = f.read()
     l = s.split(',')

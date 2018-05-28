@@ -65,6 +65,8 @@ test_df = pd.read_csv("data/human-activity-recognition-with-smartphones/test.csv
 shape = train_df.shape
 rows = shape[0]
 cols = shape[1]
+
+rows_test, cols_test = test_df.shape
 print("Training Dataset")
 print("================")
 print("Columns:", shape[1])
@@ -154,17 +156,21 @@ importance_df = pd.DataFrame(importance, columns=['feature', 'fscore'])
 importance_df =  importance_df.sort_values(by=['fscore'],ascending=False)
 
 
-ar = np.zeros((rows,cols))
+ar_train = np.zeros((rows,cols))
+ar_test = np.zeros((rows_test,cols_test))
 d = {}
 sz = len(importance)
 for i in range(0,sz):
     print(importance_df['fscore'][sz-i-1])
-    ar[:,i] = train_df[importance[sz-i-1][0]]
+    ar_train[:,i] = train_df[importance[sz-i-1][0]]
+    ar_test[:,i] = test_df[importance[sz-i-1][0]]
 
 
 cols_name = []
 fscore = []
 
+
+#write ranking data into csv file
 for i in range(0,sz):
     cols_name.append(importance[sz-i-1][0])
     fscore.append(importance_df['fscore'][sz-i-1])
@@ -173,8 +179,10 @@ print(fscore)
 print('Column names: ---------------------------')
 print(cols_name)
 cols_name = np.array(cols_name).flatten()
-data_ranking_df = pd.DataFrame(ar)
+data_ranking_df = pd.DataFrame(ar_train)
+data_test_ranking_df = pd.DataFrame(ar_test)
 data_ranking_df.to_csv('data/train_ranking.csv',  index=False)
+data_test_ranking_df.to_csv('data/test_ranking.csv',index=False)
 
 
 print("end")
