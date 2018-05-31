@@ -1,14 +1,13 @@
 
 from datetime import datetime
-# from weka.classifiers import Classifier,Evaluation
-# from weka.filters import Filter,MultiFilter
-# from weka.core.dataset import Instances
-# from weka.filters import Filter, MultiFilter, StringToWordVector
-# from weka.core.dataset import Attribute, Instance
+
+import seaborn as sns
+from sklearn.metrics import classification_report
+from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import reciprocal, uniform
+
+
 from random import randint
-# from weka.core.converters import Loader,load_any_file
-# import javabridge
-# import weka.core.jvm as jvm
 from abc import ABC, abstractmethod
 from enum import Enum
 from FoodSource import FoodSource
@@ -100,14 +99,6 @@ class CHA():
             if featureInclusion[i] == False:
                 self.instances.deleteAttributeAt( i - deletedFeatures)
                 deletedFeatures += 1
-
-    def checkmetrics(pred, labels_test, name):
-        sns.set()
-        print('The accuracy of ', name, 'is: ', accuracy_score(pred, labels_test))
-        matrix = confusion_matrix(labels_test, pred)
-        ax = sns.heatmap(matrix, annot=True, fmt="d", cmap="Blues")
-        print(ax)
-        print(classification_report(pred, labels_test))
 
     def initializeFoodSource(self):
         print('initializeFoodSources')
@@ -403,21 +394,31 @@ class CHA():
         df_test_X.to_csv('df_test_X.csv')
         df_test_y.to_csv('df_test_y.csv')
 
-        rt,ct = X_train.shape
-        re,ce = X_test.shape
-        parameters = {}
+        rt, ct = X_train.shape
+        re, ce = X_test.shape
+        parameters = {"C": uniform(0.5, 1, 1.5, 2, 5, 7, 10)}
         SVM = LinearSVC()
-        grid_search_cv = GridSearchCV(SVM, parameters, cv=3, n_jobs=-1, return_train_score=True, refit=True,
-                                      verbose=0)
+        grid_search_cv = GridSearchCV(SVM, parameters, cv=5, n_jobs=-1, return_train_score=True, refit=True,
+                                      verbose=1)
         grid_search_cv.fit(X_train, y_train)
         resultsdf = pd.DataFrame(grid_search_cv.cv_results_)
 
         train_score = grid_search_cv.score(X_train, y_train)
         print('Final Linear SVM Train Score : ', train_score)
+        print("The train score:", str(grid_search_cv.score(features_train_3std, target_train)), "with parameters:",
+              grid_search_cv.best_params_)
         pred = grid_search_cv.best_estimator_.predict(X_test)
         score = accuracy_score(pred, y_test)
         print('Final Linear SVM Accuracy: ',score)
         self.checkmetrics(pred, y_test, 'Linear Support Vector Classification')
+
+    def checkmetrics(self, pred, labels_test, name):
+        sns.set()
+        print('The accuracy of ', name, 'is: ', accuracy_score(pred, labels_test))
+        matrix = confusion_matrix(labels_test, pred)
+        ax = sns.heatmap(matrix, annot=True, fmt="d", cmap="Blues")
+        print(ax)
+        print(classification_report(pred, labels_test))
 
     def runCHA(self):
         self.loadFeatures()
