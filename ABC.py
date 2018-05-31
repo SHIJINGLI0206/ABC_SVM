@@ -3,6 +3,7 @@ from datetime import datetime
 
 import seaborn as sns
 from sklearn.metrics import classification_report
+import matplotlib.pyplot as plt
 from sklearn.model_selection import RandomizedSearchCV
 from scipy.stats import reciprocal, uniform
 
@@ -49,10 +50,11 @@ class CHA():
         self.data_train_path = data_train_path
         self.data_test_path = data_test_path
         self.runtime =1
-        self.limit = 5
-        self.mr = 0.07
+        self.limit = 15
+        self.mr = 0.1
         self.KFOLD = 3
-        self.maxNRFeatures = 19
+        self.maxNRFeatures = 272
+        self.minNRFeatures = 271
         #fix selected number for init food source
         self.selectedFeatureNum = 25
         self.fscores = fscores
@@ -183,15 +185,16 @@ class CHA():
                     nrFeatures += 1
                     features[index] = True
             elif self.perturbation == PerturbationStrategy.USE_MR:
-                for i in range(0,self.featureSize):
-                    r = random.random()
-                    r = r *(1 - self.fscores[i])
-                    if r < self.mr:
-                        if features[i] == False and \
-                                nrFeatures <= self.maxNRFeatures and \
-                                np.count_nonzero(features) < self.maxNRFeatures:
-                            nrFeatures += 1
-                            features[i] = True
+                while (nrFeatures < self.minNRFeatures):
+                    for i in range(0,self.featureSize):
+                        r = random.random()
+                        r = r * (1 - self.fscores[i])
+                        if r < self.mr:
+                            if features[i] == False and \
+                                    nrFeatures <= self.maxNRFeatures and \
+                                    np.count_nonzero(features) < self.maxNRFeatures:
+                                nrFeatures += 1
+                                features[i] = True
 
                 print('*******************************')
                 print('features: ', np.count_nonzero(features))
@@ -250,11 +253,12 @@ class CHA():
         features = np.zeros(self.featureSize)
         nrFeatures = 0
         #for j in range(0,self.featureSize):
-        for j in range(0,self.maxNRFeatures):
-            inclusio = bool(random.getrandbits(1))
-            if inclusio:
-                nrFeatures += 1
-            features[j] = inclusio
+        while (nrFeatures < self.minNRFeatures)
+            for j in range(0,self.maxNRFeatures):
+                inclusio = bool(random.getrandbits(1))
+                if inclusio:
+                    nrFeatures += 1
+                features[j] = inclusio
 
 
         curFitness = self.calculateFitness(features)
@@ -396,7 +400,7 @@ class CHA():
 
         rt, ct = X_train.shape
         re, ce = X_test.shape
-        parameters = {"C": uniform(0.5, 1, 1.5, 2, 5, 7, 10)}
+        parameters = {}
         SVM = LinearSVC()
         grid_search_cv = GridSearchCV(SVM, parameters, cv=5, n_jobs=-1, return_train_score=True, refit=True,
                                       verbose=1)
@@ -405,8 +409,8 @@ class CHA():
 
         train_score = grid_search_cv.score(X_train, y_train)
         print('Final Linear SVM Train Score : ', train_score)
-        print("The train score:", str(grid_search_cv.score(features_train_3std, target_train)), "with parameters:",
-              grid_search_cv.best_params_)
+        # print("The train score:", str(grid_search_cv.score(features_train_3std, target_train)), "with parameters:",
+              # grid_search_cv.best_params_)
         pred = grid_search_cv.best_estimator_.predict(X_test)
         score = accuracy_score(pred, y_test)
         print('Final Linear SVM Accuracy: ',score)
@@ -419,6 +423,7 @@ class CHA():
         ax = sns.heatmap(matrix, annot=True, fmt="d", cmap="Blues")
         print(ax)
         print(classification_report(pred, labels_test))
+        plt.show()
 
     def runCHA(self):
         self.loadFeatures()
