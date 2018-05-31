@@ -182,7 +182,7 @@ xgb_params = {
 dtrain = xgb.DMatrix(features_train_df, target_train_cat_df)
 dtest = xgb.DMatrix(features_test_df, target_test_cat_df)
 
-num_boost_rounds = 250
+num_boost_rounds = 5
 
 watchlist = [(dtrain, 'train'), (dtest, 'test')]
 
@@ -272,6 +272,7 @@ features_test_2std_df = pd.read_csv("data/features_test_2std.csv")
 
 features_train_2std = features_train_2std_df.as_matrix()
 features_test_2std = features_test_2std_df.as_matrix()
+print('features train 2std: ',features_train_2std[:][0])
 
 
 # In[14]:

@@ -38,7 +38,7 @@ class PerturbationStrategy(Enum):
 
 
 class CHA():
-    def __init__(self, data_train_path, data_test_path, fscores, header_names, valid_col_num, target_col_index):
+    def __init__(self, data_train_path, data_test_path, fscores, header_names):
         #self.features = {True, True, True, True}
         # self.features = { True, True, True, True, True, True, True, True,
         #                    True, True, True, True, True, True, True, True, True, True,
@@ -49,17 +49,16 @@ class CHA():
         #self.databaseName = "dataset/segment.arff"
         self.data_train_path = data_train_path
         self.data_test_path = data_test_path
-        self.runtime = 1
-        self.limit = 15
+        self.runtime = 2
+        self.limit = 20
         self.mr = 0.09
         self.KFOLD = 5
-        self.maxNRFeatures = 165
+        self.maxNRFeatures = 164
         #fix selected number for init food source
         self.selectedFeatureNum = 25
         self.fscores = fscores
         self.header_names = header_names
-        self.valid_col_num = valid_col_num
-        self.target_col_index = target_col_index
+
 
 
         self.bestFitness = 0
@@ -189,9 +188,15 @@ class CHA():
                     r = random.random()
                     r = r *(1 - self.fscores[i])
                     if r < self.mr:
-                        if features[i] == False and nrFeatures < self.maxNRFeatures:
+                        if features[i] == False and \
+                                nrFeatures <= self.maxNRFeatures and \
+                                np.count_nonzero(features) <= self.maxNRFeatures:
                             nrFeatures += 1
                             features[i] = True
+
+                print('*******************************')
+                print('features: ', np.count_nonzero(features))
+                print('*******************************')
 
             modifedFoodSource = FoodSource(features)
             if (modifedFoodSource not in self.foodSources and \
@@ -217,18 +222,36 @@ class CHA():
                     self.createScoutBee()
                 self.visitedFoodSources.add(modifedFoodSource)
             else:
-                if fitness > self.bestFitness or (fitness == self.bestFitness and nrFeatures < self.bestFoodSource.getNrFeatures()):
-                    self.bestFoodSource = FoodSource(modifedFoodSource.getFeatureInclusion(),
-                                                     modifedFoodSource.getFitness(),
-                                                     modifedFoodSource.getNrFeatures())
-                    self.bestFitness = fitness
+                if (fitness > self.bestFitness or \
+                        (fitness == self.bestFitness
+                         and nrFeatures < self.bestFoodSource.getNrFeatures()
+                         )) and nrFeatures <= self.maxNRFeatures:
+                    print('-----------------------------------------------------')
+                    num_modify = np.count_nonzero(modifedFoodSource.getFeatureInclusion())
+                    print("modify feature num: ", num_modify)
+                    print('-----------------------------------------------------')
+                    num_best =  np.count_nonzero(self.bestFoodSource.getFeatureInclusion())
+                    print('num best : ',num_best)
+                    if num_modify <= self.maxNRFeatures:
+                        print('++++++++++++')
+                        print('update best food source.')
+                        fi = modifedFoodSource.getFeatureInclusion()
+                        ft = modifedFoodSource.getFitness()
+                        nr = modifedFoodSource.getNrFeatures()
+
+                        self.bestFoodSource = FoodSource(fi,ft,nr)
+                        print('+++++++++++')
+                        num_best_updated = np.count_nonzero(self.bestFoodSource.getFeatureInclusion())
+                        print('updated best num: ',num_best_updated )
+                        self.bestFitness = fitness
                 self.neighbors.add(modifedFoodSource)
         return True
 
     def createScoutBee(self):
         features = np.zeros(self.featureSize)
         nrFeatures = 0
-        for j in range(0,self.featureSize):
+        #for j in range(0,self.featureSize):
+        for j in range(0,self.maxNRFeatures):
             inclusio = bool(random.getrandbits(1))
             if inclusio:
                 nrFeatures += 1
@@ -338,10 +361,60 @@ class CHA():
         print('Feature selection End.')
         print('Best Fitness is ',self.bestFitness)
 
+    def Linear_SVM(self):
+        print('Start Final Linear SVM.')
+        data_train = self.data_train
+        data_test = self.data_test
+        fi = self.bestFoodSource.getFeatureInclusion()
+        fn = np.count_nonzero(self.bestFoodSource.getFeatureInclusion())
+        print('num features: ', fn)
+        rows_train, cols_train = data_train.shape
+        rows_test, cols_test = data_test.shape
+
+        X_train = np.zeros((rows_train, fn),dtype=float)
+        y_train = data_train[:, cols_train - 1:].ravel()
+
+        X_test = np.zeros((rows_test,fn),dtype=float)
+        y_test = data_test[:, cols_test - 1:].ravel()
+
+        #for i in range(0,fn):
+        i = 0
+        for j in range(0,cols_train-1):
+            if fi[j] == True:
+                X_train[:,i] = data_train[:,j]
+                X_test[:,i] = data_test[:,j]
+                i += 1
+
+
+        df_train_X = pd.DataFrame(X_train)
+        df_train_y = pd.DataFrame(y_train)
+        df_test_X = pd.DataFrame(X_test)
+        df_test_y = pd.DataFrame(y_test)
+        df_train_X.to_csv('df_train_X.csv')
+        df_train_y.to_csv('df_train_y.csv')
+        df_test_X.to_csv('df_test_X.csv')
+        df_test_y.to_csv('df_test_y.csv')
+
+        rt,ct = X_train.shape
+        re,ce = X_test.shape
+        parameters = {}
+        SVM = LinearSVC()
+        grid_search_cv = GridSearchCV(SVM, parameters, cv=3, n_jobs=-1, return_train_score=True, refit=True,
+                                      verbose=0)
+        grid_search_cv.fit(X_train, y_train)
+        resultsdf = pd.DataFrame(grid_search_cv.cv_results_)
+
+        train_score = grid_search_cv.score(X_train, y_train)
+        print('Final Linear SVM Train Score : ', train_score)
+        pred = grid_search_cv.best_estimator_.predict(X_test)
+        score = accuracy_score(pred, y_test)
+        print('Final Linear SVM Accuracy: ',score)
+
 
     def runCHA(self):
         self.loadFeatures()
         self.executeFeatureSelection()
+        self.Linear_SVM()
 
 
 
