@@ -49,8 +49,8 @@ class CHA():
         #self.databaseName = "dataset/segment.arff"
         self.data_train_path = data_train_path
         self.data_test_path = data_test_path
-        self.runtime =2
-        self.limit = 20
+        self.runtime =1
+        self.limit = 5
         self.mr = 0.07
         self.KFOLD = 3
         self.maxNRFeatures = 19
@@ -100,6 +100,14 @@ class CHA():
             if featureInclusion[i] == False:
                 self.instances.deleteAttributeAt( i - deletedFeatures)
                 deletedFeatures += 1
+
+    def checkmetrics(pred, labels_test, name):
+        sns.set()
+        print('The accuracy of ', name, 'is: ', accuracy_score(pred, labels_test))
+        matrix = confusion_matrix(labels_test, pred)
+        ax = sns.heatmap(matrix, annot=True, fmt="d", cmap="Blues")
+        print(ax)
+        print(classification_report(pred, labels_test))
 
     def initializeFoodSource(self):
         print('initializeFoodSources')
@@ -409,14 +417,12 @@ class CHA():
         pred = grid_search_cv.best_estimator_.predict(X_test)
         score = accuracy_score(pred, y_test)
         print('Final Linear SVM Accuracy: ',score)
-
+        self.checkmetrics(pred, y_test, 'Linear Support Vector Classification')
 
     def runCHA(self):
         self.loadFeatures()
         self.executeFeatureSelection()
         self.Linear_SVM()
-
-
 
 '''
 if __name__ == '__main__':
