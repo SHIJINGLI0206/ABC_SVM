@@ -49,11 +49,11 @@ class CHA():
         #self.databaseName = "dataset/segment.arff"
         self.data_train_path = data_train_path
         self.data_test_path = data_test_path
-        self.runtime = 2
+        self.runtime =2
         self.limit = 20
-        self.mr = 0.09
-        self.KFOLD = 5
-        self.maxNRFeatures = 164
+        self.mr = 0.07
+        self.KFOLD = 3
+        self.maxNRFeatures = 19
         #fix selected number for init food source
         self.selectedFeatureNum = 25
         self.fscores = fscores
@@ -190,7 +190,7 @@ class CHA():
                     if r < self.mr:
                         if features[i] == False and \
                                 nrFeatures <= self.maxNRFeatures and \
-                                np.count_nonzero(features) <= self.maxNRFeatures:
+                                np.count_nonzero(features) < self.maxNRFeatures:
                             nrFeatures += 1
                             features[i] = True
 
