@@ -185,16 +185,16 @@ class CHA():
                     nrFeatures += 1
                     features[index] = True
             elif self.perturbation == PerturbationStrategy.USE_MR:
-                while (nrFeatures < self.minNRFeatures):
-                    for i in range(0,self.featureSize):
-                        r = random.random()
-                        r = r * (1 - self.fscores[i])
-                        if r < self.mr:
-                            if features[i] == False and \
-                                    nrFeatures <= self.maxNRFeatures and \
-                                    np.count_nonzero(features) < self.maxNRFeatures:
-                                nrFeatures += 1
-                                features[i] = True
+                # while (nrFeatures < self.minNRFeatures):
+                for i in range(0,self.featureSize):
+                    r = random.random()
+                    r = r * (1 - self.fscores[i])
+                    if r < self.mr:
+                        if features[i] == False and \
+                                nrFeatures <= self.maxNRFeatures and \
+                                np.count_nonzero(features) < self.maxNRFeatures:
+                            nrFeatures += 1
+                            features[i] = True
 
                 print('*******************************')
                 print('features: ', np.count_nonzero(features))
@@ -253,12 +253,12 @@ class CHA():
         features = np.zeros(self.featureSize)
         nrFeatures = 0
         #for j in range(0,self.featureSize):
-        while (nrFeatures < self.minNRFeatures)
-            for j in range(0,self.maxNRFeatures):
-                inclusio = bool(random.getrandbits(1))
-                if inclusio:
-                    nrFeatures += 1
-                features[j] = inclusio
+        while (nrFeatures < self.minNRFeatures):
+#            for j in range(0,self.maxNRFeatures):
+            inclusio = bool(random.getrandbits(1))
+            if inclusio:
+                nrFeatures += 1
+            features[j] = inclusio
 
 
         curFitness = self.calculateFitness(features)
